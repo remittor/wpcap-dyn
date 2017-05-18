@@ -14,5 +14,13 @@
     <ClCompile Include="wpcap-enum.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="xgetopt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="xgetopt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
