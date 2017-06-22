@@ -51,6 +51,9 @@ int wpcap_get_func(struct wpcap_dyn * wpc, DWORD filter)
         GET_PROC_ADDR_WPC(pcap_setfilter);
         GET_PROC_ADDR_WPC(pcap_dispatch);
         GET_PROC_ADDR_WPC(pcap_freecode);
+        GET_PROC_ADDR_WPC(pcap_geterr);
+        GET_PROC_ADDR_WPC(pcap_getnonblock);
+        GET_PROC_ADDR_WPC(pcap_setnonblock);
     }
     if (filter & WPCAP_FLT_SEND) {
         GET_PROC_ADDR_WPC(pcap_sendpacket);
