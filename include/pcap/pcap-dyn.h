@@ -60,6 +60,9 @@ int wpcap_get_func(struct wpcap_dyn * wpc, DWORD filter)
     }
     if (filter & WPCAP_FLT_EXT) {
         GET_PROC_ADDR_WPC(pcap_findalldevs_ex);
+        GET_PROC_ADDR_WPC(pcap_setmintocopy);
+        GET_PROC_ADDR_WPC(pcap_getevent);
+        GET_PROC_ADDR_WPC(pcap_setbuff);
     }
     return 0;
 }

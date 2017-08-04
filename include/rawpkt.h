@@ -1,11 +1,14 @@
 #ifndef RAWPKT_H
 #define RAWPKT_H
 
-#define ETH_ALEN    6
+#define ETH_ALEN          6
+#define ETHERTYPE_IP      0x0800
+#define ETHERTYPE_IPv6    0x86DD
 
-#define IPVERSION   4
-#define MAXTTL      255
-#define IPDEFTTL    64
+#define IPVERSION         4
+#define MAXTTL            255
+#define IPDEFTTL          64
+#define IPv4_HDR_LEN      0x45   /* IPv4 + 20 bytes of IP header */
 
 #define IPTOS_TOS_MASK    0x1E
 #define IPTOS_TOS(tos)    ((tos)&IPTOS_TOS_MASK)
@@ -26,6 +29,19 @@
 #endif
 
 #define IP_FRAG_TIME      (30 * HZ)  /* fragment lifetime	*/
+
+/* TCP flags */
+#define TH_FIN    0x0100
+#define TH_SYN    0x0200
+#define TH_RST    0x0400
+#define TH_PUSH   0x0800
+#define TH_ACK    0x1000
+#define TH_URG    0x2000
+#define TH_ECN    0x4000
+#define TH_CWR    0x8000
+#define TH_NS     0x0001
+#define TH_RES    0x000E /* 3 reserved bits */
+#define TH_MASK   0xFF0F
 
 
 #pragma pack( push, 1 )
@@ -54,16 +70,21 @@ typedef struct {
   WORD   dest;
   DWORD  seq;
   DWORD  ack_seq;
-  WORD   res1:4,
-         doff:4,
-         fin:1,
-         syn:1,
-         rst:1,
-         psh:1,
-         ack:1,
-         urg:1,
-         ece:1,
-         cwr:1;
+  union {
+    uint16_t   flags;
+    struct {
+      uint16_t res1:4;
+      uint16_t doff:4;
+      uint16_t fin:1;
+      uint16_t syn:1;
+      uint16_t rst:1;
+      uint16_t psh:1;
+      uint16_t ack:1;
+      uint16_t urg:1;
+      uint16_t ece:1;
+      uint16_t cwr:1;
+    };
+  };
   WORD   window;
   WORD   check;
   WORD   urg_ptr; 
@@ -96,5 +117,9 @@ typedef struct {
 
 #define RAWPKT_IP_HDR_LEN          (sizeof(ip_packet_t))
 #define RAWPKT_RAW_IP_HDR_LEN      (sizeof(eth_packet_t) + RAWPKT_IP_HDR_LEN)
+
+#define ut_ntohs(_x_)    ( (((uint16_t)(_x_) & 0xff) << 8) | ((uint16_t)(_x_) >> 8) )
+#define ut_htons         ut_ntohs
+
 
 #endif /* RAWPKT_H */
