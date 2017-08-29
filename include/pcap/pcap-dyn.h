@@ -14,6 +14,8 @@
 #define WPCAP_FLAG_WINPCAP_MODE  0x0001
 #define WPCAP_FLAG_NPCAP_MODE    0x0002
 
+#define WPCAP_LOAD_DLL_FROM_MEM  ((const wchar_t *)(1))
+
 
 #define WPCAP_GOTO_EXIT_IF(exp, code) do { \
     if ((exp)) {                           \
@@ -132,9 +134,9 @@ int wpcap_free(struct wpcap_dyn * wpc)
             free(wpc->pkt.adp_list);
         if (wpc->wpc.devlist && wpc->pcap_freealldevs)
             wpc->pcap_freealldevs(wpc->wpc.devlist);
-        if (wpc->wpc.hModule)
+        if (wpc->wpc.hModule && wpc->wpc.filename[0])
             FreeLibrary(wpc->wpc.hModule);
-        if (wpc->pkt.hModule)
+        if (wpc->pkt.hModule && wpc->pkt.filename[0])
             FreeLibrary(wpc->pkt.hModule);
         free(wpc);
     }
@@ -231,30 +233,41 @@ int wpcap_load(const wchar_t * modfile, struct wpcap_dyn ** wpc)
     WPCAP_GOTO_EXIT_IF(!api, -2);
     memset(api, 0, sizeof(*api));
 
-    if (!modfile)
-        modfile = L"wpcap.dll";
-    hr = wpcap_find_module(modfile, filename, MAX_PATH);
-    WPCAP_GOTO_EXIT_IF(hr, hr);
+    if (modfile == WPCAP_LOAD_DLL_FROM_MEM) {
+        HMODULE hModWpcap = GetModuleHandleW(L"wpcap.dll");
+        HMODULE hModPacket = GetModuleHandleW(L"packet.dll");
+        if (hModWpcap && hModPacket) {
+            api->pkt.hModule = hModPacket;
+            api->wpc.hModule = hModWpcap;
+        }
+    }
+    if (!api->pkt.hModule) {
+        if (!modfile)
+            modfile = L"wpcap.dll";
+        hr = wpcap_find_module(modfile, filename, MAX_PATH);
+        WPCAP_GOTO_EXIT_IF(hr, hr);
 
-    p = wcsrchr(filename, L'\\');
-    WPCAP_GOTO_EXIT_IF(!p, -14);
-    len = ((size_t)p - (size_t)filename) / sizeof(WCHAR);
-    WPCAP_GOTO_EXIT_IF(len > MAX_PATH - 32, -15);
-    memset(dlldir, 0, sizeof(dlldir));
-    wcsncpy(dlldir, filename, len);
+        p = wcsrchr(filename, L'\\');
+        WPCAP_GOTO_EXIT_IF(!p, -14);
+        len = ((size_t)p - (size_t)filename) / sizeof(WCHAR);
+        WPCAP_GOTO_EXIT_IF(len > MAX_PATH - 32, -15);
+        memset(dlldir, 0, sizeof(dlldir));
+        wcsncpy(dlldir, filename, len);
 
-    wcscpy(api->wpc.filename, filename);
-    wcscpy(api->pkt.filename, dlldir);
-    wcscat(api->pkt.filename, L"\\packet.dll");
-    WPCAP_GOTO_EXIT_IF(GetFileAttributesW(api->pkt.filename) == INVALID_FILE_ATTRIBUTES, -18);
+        wcscpy(api->wpc.filename, filename);
+        wcscpy(api->pkt.filename, dlldir);
+        wcscat(api->pkt.filename, L"\\");
+        wcscat(api->pkt.filename, L"packet.dll");
+        WPCAP_GOTO_EXIT_IF(GetFileAttributesW(api->pkt.filename) == INVALID_FILE_ATTRIBUTES, -18);
 
-    WPCAP_GOTO_EXIT_IF(SetDllDirectoryW(dlldir) == FALSE, -19);
-    api->pkt.hModule = LoadLibraryExW(api->pkt.filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    if (api->pkt.hModule)
-        api->wpc.hModule = LoadLibraryExW(api->wpc.filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    SetDllDirectoryW(NULL);
-    WPCAP_GOTO_EXIT_IF(!api->pkt.hModule, -21);
-    WPCAP_GOTO_EXIT_IF(!api->wpc.hModule, -22);
+        WPCAP_GOTO_EXIT_IF(SetDllDirectoryW(dlldir) == FALSE, -19);
+        api->pkt.hModule = LoadLibraryExW(api->pkt.filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+        if (api->pkt.hModule)
+            api->wpc.hModule = LoadLibraryExW(api->wpc.filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+        SetDllDirectoryW(NULL);
+        WPCAP_GOTO_EXIT_IF(!api->pkt.hModule, -21);
+        WPCAP_GOTO_EXIT_IF(!api->wpc.hModule, -22);
+    }
 
     hr = wpcap_get_pkt_func(api);
     WPCAP_GOTO_EXIT_IF(hr, -30);
