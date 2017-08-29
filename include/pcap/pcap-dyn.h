@@ -240,6 +240,7 @@ int wpcap_load(const wchar_t * modfile, struct wpcap_dyn ** wpc)
             api->pkt.hModule = hModPacket;
             api->wpc.hModule = hModWpcap;
         }
+        modfile = NULL;
     }
     if (!api->pkt.hModule) {
         if (!modfile)
